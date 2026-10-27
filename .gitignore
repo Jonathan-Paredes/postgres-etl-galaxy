@@ -1,0 +1,25 @@
+# Entornos y archivos locales
+.venv/
+venv/
+etl_venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+!.env.example.txt
+.ipynb_checkpoints/
+.vscode/
+.idea/
+logs/
+*.log
+# Datos completos y respaldos: publicar solo ejemplos revisados
+data/
+*.csv
+*.xlsx
+*.xls
+*.sql
+*.dump
+*.backup
+!sql/*.sql
+!examples/*.csv
