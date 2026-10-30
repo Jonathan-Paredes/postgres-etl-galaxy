@@ -1,3 +1,5 @@
+> Documento de iteración 1. El flujo operacional y la política vigente de versiones se amplían en [ITERACION_2.md](ITERACION_2.md).
+
 # Contrato físico previo al cambio
 
 Inspección: 29 de octubre de 2026. Fuentes: `01_schema_estrella.sql` y

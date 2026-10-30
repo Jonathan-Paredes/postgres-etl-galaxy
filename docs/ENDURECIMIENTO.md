@@ -1,3 +1,5 @@
+> Documento de iteración 1. El flujo operacional y la política vigente de versiones se amplían en [ITERACION_2.md](ITERACION_2.md).
+
 # Endurecimiento del ETL
 
 Se preservan once dimensiones, un hecho y sus nombres, claves y granularidad.

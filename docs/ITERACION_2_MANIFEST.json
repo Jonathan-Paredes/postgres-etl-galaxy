@@ -1,0 +1,12 @@
+{
+  "scr/etl_original.py": "eec4c774386a73975744aa4e78edeedddeb4fa438b4e0be95e57bfd6bcf490a4",
+  "scr/carga_operacional.py": "32af6da4d70a0b0eb1bbe095b7a68d08c5b77619d736a912b97fbb5a0301b6b6",
+  "scr/alertas_operacionales.py": "878a775d3ef9757393b4a53dd4135a9013fe6653f519da4318811a5cf5f0802b",
+  "scr/corte_operacional.py": "0bc33f0a11f5dafbd02048fba879c530566702f7fbf103e0f3de6eea5697d972",
+  "sql/04_lotes_alertas.sql": "a853d1808c2458c9a1ae58ed6b021c219fac143a174164636ec426e44f82759b",
+  "tests/test_operacional_unit.py": "52788b4759f1caa3974b8212af20393506a1ca7b56d89fc47b1b9cc5c84719a7",
+  "tests/test_operacional_postgres.py": "096d5bb8f4c7a0f0f568e96dc68cc489bae9a69cbb6e4dfd80240b4e61398e08",
+  "tests/test_unit.py": "29539798df436b13417ac3acb0bf1478c31860cc02cfdf4eb392e5f8e4b150f3",
+  "tests/test_postgres.py": "46759f0b1e09751ebaabd16221dcbcd8a8ae4a79165bcd7769d8b2cff21dc122",
+  "tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx": "aa2da025cef3321cae8036cc94e44522a067d1f74c48e457ef74cce88528093a"
+}

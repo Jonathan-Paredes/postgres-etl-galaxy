@@ -1,3 +1,5 @@
+> Documento de iteración 1. El flujo operacional y la política vigente de versiones se amplían en [ITERACION_2.md](ITERACION_2.md).
+
 # Pruebas del ETL
 
 La batería actual usa el fixture Excel original sin editar y DDL original más

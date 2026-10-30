@@ -102,7 +102,7 @@ COLUMNAS_ESPERADAS = {
     "Tipo_falla_cierre", "Operador_cierre", "Equipo", "Tipo", "Clasificación",
     "Sitio", "Duración (minutos)",
 }
-ESTADOS_ABIERTOS = {"abierto", "pendiente", "en progreso", "en proceso", "escalado"}
+ESTADOS_ABIERTOS = {"abierto", "pendiente", "en progreso", "en proceso", "escalado", "work in progress", "work_in_progress", "wip"}
 ESTADOS_CERRADOS = {"cerrado", "resuelto"}
 
 
@@ -146,7 +146,7 @@ def validar_entrada(df: pd.DataFrame) -> pd.DataFrame:
             raise ValueError(f"Fecha inválida en {col}") from exc
     if df["Fecha_creacion_ticket"].isna().any():
         raise ValueError("Fecha_creacion_ticket es obligatoria")
-    estado = df["Estado"].astype("string").str.strip().str.casefold()
+    estado = df["Estado"].astype("string").str.strip().str.casefold().str.replace(r"\s+", " ", regex=True)
     if not estado.isin(ESTADOS_ABIERTOS | ESTADOS_CERRADOS).all():
         raise ValueError("Estado ausente o no reconocido; revisar la política documentada")
     cerrados = estado.isin(ESTADOS_CERRADOS)
@@ -537,6 +537,8 @@ def cargar(dims: dict, df_original: pd.DataFrame,
     try:
         with engine.begin() as conn:
             validar_modelo(conn)
+            if inspect(conn).has_table('etl_lotes', schema=SCHEMA):
+                raise ValueError('Usar carga_operacional.cargar_lote: el esquema operacional exige auditoría')
             # Serializa este ETL por base y esquema. Lock liberado por commit/rollback.
             # Evita carreras de dimensiones y actualizaciones parciales entre cargas.
             conn.execute(text("SELECT pg_advisory_xact_lock(712984321)"))
@@ -570,7 +572,7 @@ def cargar(dims: dict, df_original: pd.DataFrame,
 # ---------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------
-def main():
+def main_historico():
     parser = argparse.ArgumentParser(description="ETL Excel/CSV -> esquema estrella Postgres")
     parser.add_argument("--excel", required=True,
                         help="Ruta al archivo fuente (.xlsx o .csv)")
@@ -619,6 +621,11 @@ def main():
     except Exception:
         log.exception("=== ETL FALLIDO tras %.2fs ===", time.time() - t_inicio)
         sys.exit(1)
+
+
+def main():
+    from carga_operacional import main as main_operacional
+    main_operacional()
 
 
 if __name__ == "__main__":

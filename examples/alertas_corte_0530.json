@@ -1,0 +1,45 @@
+{
+  "origen": "Ejecución real de prueba sintética en PostgreSQL descartable",
+  "lote": {
+    "lote_id": "6f828c34-4743-421a-811c-da8a286bb418",
+    "fecha_inicio": "2026-10-29 22:07:26.369628-03:00",
+    "fecha_fin": "2026-10-29 22:07:26.659861-03:00",
+    "fecha_corte": "2025-03-06 05:30:00-03:00",
+    "archivo_origen": "fixture_sintetico.xlsx",
+    "hash_archivo": "0925528c1c0ab3e27829925a92bf6700c826c9ecbe393f94969f18a41671fcfc",
+    "ventana_desde": "2025-02-27 05:30:00-03:00",
+    "solapamiento_dias": 7,
+    "modo_extraccion": "ARCHIVO_SIN_MARCA",
+    "columna_modificacion": null,
+    "politica_conflicto": "RECHAZAR",
+    "filas_recibidas": 4,
+    "filas_seleccionadas": 4,
+    "filas_insertadas": 4,
+    "filas_actualizadas": 0,
+    "filas_sin_cambios": 0,
+    "alertas_detectadas": 2,
+    "alertas_nuevas": 2,
+    "estado_ejecucion": "COMPLETADO",
+    "error_codigo": null
+  },
+  "alertas": [
+    {
+      "alerta_id": 1,
+      "numero_ticket": "OPEN-001",
+      "codigo_regla": "WIP_EN_CORTE_0530",
+      "fecha_corte": "2025-03-06 05:30:00-03:00",
+      "estado_observado": "Work in Progress",
+      "lote_id": "6f828c34-4743-421a-811c-da8a286bb418",
+      "fecha_deteccion": "2026-10-29 22:07:26.651495-03:00"
+    },
+    {
+      "alerta_id": 2,
+      "numero_ticket": "OPEN-002",
+      "codigo_regla": "WIP_EN_CORTE_0530",
+      "fecha_corte": "2025-03-06 05:30:00-03:00",
+      "estado_observado": "En progreso",
+      "lote_id": "6f828c34-4743-421a-811c-da8a286bb418",
+      "fecha_deteccion": "2026-10-29 22:07:26.658855-03:00"
+    }
+  ]
+}

@@ -4,6 +4,22 @@ Pipeline Excel/CSV a once dimensiones y un hecho en PostgreSQL, esquema
 `galaxy_dw`. Soporta tickets abiertos, pendientes, en progreso y cerrados,
 actualizando por Numero_ticket sin eliminar otros tickets del período.
 
+## Iteración 2: flujo operacional actual
+
+La CLI ahora usa cortes a las **05:30 America/Santiago**, solapamiento configurable
+de siete días, lotes auditados, control de versiones y alertas WIP históricas sin
+alterar tickets. Requiere la migración **aditiva 04**, además de 03, solo tras revisión.
+No se aplica automáticamente a Galaxy.
+
+[Contrato, políticas y ejecución local](docs/ITERACION_2.md) ·
+[Resultados ejecutados](docs/ITERACION_2_RESULTADOS.md).
+
+Los ejemplos históricos de carga sin fecha-corte usan ahora el último corte
+efectivo; para reproducibilidad pasar --fecha-corte con offset. La carga auditada
+rechaza por defecto cambios contradictorios sin evidencia temporal. No se usa
+creación como modificación ni se corrige WIP a Pendiente. Sin marca de origen,
+se procesan todas las filas entregadas; la extracción debe garantizar su cobertura.
+
 ## Revisar el modelo antes de cargar
 
 Leer [contrato físico](docs/CONTRATO_FISICO.md). Los scripts originales del autor
@@ -27,10 +43,11 @@ python -m venv .venv
 
 ```powershell
 .venv\Scripts\python.exe scr/etl_original.py --excel tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx --dry-run
-.venv\Scripts\python.exe -m pytest tests/test_unit.py -v
+.venv\Scripts\python.exe -m pytest -m "not integration" -v
 ```
 
-dry-run valida extracción y dimensiones, no prueba la fact ni el modelo físico.
+dry-run valida entrada y plan de extracción; no prueba conflictos contra la base,
+la fact, la persistencia de auditoría ni el modelo físico.
 
 ## Cargar a una base autorizada y compatible
 
@@ -44,12 +61,12 @@ No hay destino ni credenciales predeterminados; no se carga .env automáticament
 
 El archivo es un snapshot completo por ticket: los NULL explícitos reemplazan
 valores anteriores y permiten reaperturas. ON CONFLICT conserva ticket_key y
-no modifica tablas ML. Sin versión de origen, la última carga que toma el lock
-prevalece: no se pueden detectar snapshots fuera de orden.
+no modifica tablas ML. En el flujo operacional se usa la huella y evidencia de corte/modificación;
+los snapshots contradictorios sin evidencia suficiente se rechazan.
 
---desde y --hasta filtran **creación**, incluyendo ambos días completos. No
-borran períodos. Para actualizar tickets antiguos con cambios de estado, cargar
-sus snapshots sin ese filtro. --truncate está deshabilitado.
+La CLI operacional no acepta --desde/--hasta porque filtraban creación.
+Usar --columna-modificacion únicamente con marca real adicional del origen;
+sin ella no se filtra el archivo por antigüedad. --truncate está deshabilitado.
 
 ## Integración con PostgreSQL descartable
 
@@ -64,7 +81,7 @@ Runner genera credenciales, instancia y bases UUID temporales; detiene únicamen
 su propia instancia al terminar. No lee .env ni usa el destino Galaxy. Los tests
 solo eliminan sus bases descartables. Resultados JUnit en test-results/junit.xml.
 Sin TEST_PG_URL, pytest directo omite integración explícitamente; usar el runner
-para ejecutarla. [Resultados realmente ejecutados](docs/RESULTADOS_HARDENING.md).
+para ejecutarla. [Resultados realmente ejecutados](docs/ITERACION_2_RESULTADOS.md).
 
 ## Documentación
 
