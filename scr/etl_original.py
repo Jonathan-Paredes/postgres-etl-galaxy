@@ -4,8 +4,6 @@ ETL: Datos_Mineria_Galaxy_ETL.xlsx -> esquema estrella en PostgreSQL (galaxy_dw)
 Uso:
     python etl/etl.py --excel /ruta/Datos_Mineria_Galaxy_ETL.xlsx [--dry-run]
     python etl/etl.py --excel datos.xlsx --desde 2025-03-01 --hasta 2025-03-31
-    python etl/etl.py --excel datos.xlsx --truncate   # recarga total (dev)
-    python etl/etl.py --excel prueba.csv --truncate   # acepta CSV también
 
 Requiere que 'sql/01_schema_estrella.sql' y 'sql/02_tablas_ml.sql'
 ya se hayan ejecutado contra la base (ver README).
@@ -13,9 +11,11 @@ ya se hayan ejecutado contra la base (ver README).
 import argparse
 import sys
 import time
+import math
 from pathlib import Path
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import text, inspect
+from uuid import uuid4
 
 sys.path.append(str(Path(__file__).resolve().parent))
 from db import get_engine          # noqa: E402
@@ -82,36 +82,126 @@ def extraer(ruta: str) -> pd.DataFrame:
             )
 
     if ext in (".xlsx", ".xls"):
-        df = pd.read_excel(path, sheet_name="Sheet1")
+        df = pd.read_excel(path, sheet_name="Sheet1", dtype={"Numero_ticket": "string"}, keep_default_na=False)
     elif ext == ".csv":
         df = _leer_csv_robusto(path)
     else:
         raise ValueError(f"Extensión no soportada: {ext}. Usa .xlsx o .csv")
 
-    # Normalizar fechas (dayfirst=True para formato dd/mm/yyyy)
-    for col in ("Fecha_creacion_ticket", "Fecha_respuesta", "Fecha_cierre"):
-        df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
-
-    columnas_esperadas = {
-        "Numero_ticket", "Fecha_creacion_ticket", "Fecha_respuesta", "Fecha_cierre",
-        "Estado", "Prioridad", "Tiempo_abierto", "Tipo_ticket", "Tipo_requerimiento",
-        "Asunto", "Nota_cierre", "Solucion", "Operador_apertura", "Modo_apertura",
-        "Origen", "Tipo_solicitud", "Tipo_falla", "Tipo_falla_cierre", "Operador_cierre",
-        "Equipo", "Tipo", "Clasificación", "Sitio", "Duración (minutos)",
-    }
-    faltantes = columnas_esperadas - set(df.columns)
-    if faltantes:
-        raise ValueError(f"Faltan columnas esperadas en el archivo: {faltantes}")
-
-    if df["Numero_ticket"].duplicated().any():
-        raise ValueError("Numero_ticket tiene duplicados; se esperaba clave única por ticket.")
-
-    nulos_fecha = df[["Fecha_creacion_ticket", "Fecha_respuesta", "Fecha_cierre"]].isna().sum()
-    if nulos_fecha.any():
-        log.warning("Fechas no parseables (NaT) por columna: %s", nulos_fecha.to_dict())
+    df = validar_entrada(df)
 
     log.info("Extraídas %d filas en %.2fs", len(df), time.time() - t0)
     return df
+
+
+FECHAS = ("Fecha_creacion_ticket", "Fecha_respuesta", "Fecha_cierre")
+COLUMNAS_ESPERADAS = {
+    "Numero_ticket", *FECHAS, "Estado", "Prioridad", "Tiempo_abierto",
+    "Tipo_ticket", "Tipo_requerimiento", "Asunto", "Nota_cierre", "Solucion",
+    "Operador_apertura", "Modo_apertura", "Origen", "Tipo_solicitud", "Tipo_falla",
+    "Tipo_falla_cierre", "Operador_cierre", "Equipo", "Tipo", "Clasificación",
+    "Sitio", "Duración (minutos)",
+}
+ESTADOS_ABIERTOS = {"abierto", "pendiente", "en progreso", "en proceso", "escalado", "work in progress", "work_in_progress", "wip"}
+ESTADOS_CERRADOS = {"cerrado", "resuelto"}
+# Cancelado es un estado operacional propio: no implica que se conozcan los
+# datos de cierre. Los alias históricos anteriores se conservan sin ampliarlos.
+ESTADOS_CANCELADOS = {"cancelado"}
+
+
+def _fecha(valor):
+    """ISO se interpreta como ISO; formatos locales usan día primero."""
+    if pd.isna(valor):
+        return pd.NaT
+    if isinstance(valor, (int, float)):
+        raise ValueError("Fecha numérica sin formato de fecha explícito")
+    if isinstance(valor, str) and len(valor) >= 10 and valor[4] == "-" and valor[7] == "-":
+        parsed = pd.Timestamp(valor)
+    else:
+        parsed = pd.to_datetime(valor, dayfirst=True, errors="raise")
+    if pd.isna(parsed):
+        raise ValueError("Fecha no vacía no interpretable")
+    if parsed.tzinfo is not None:
+        raise ValueError("La base utiliza TIMESTAMP sin zona horaria")
+    return parsed
+
+
+def validar_entrada(df: pd.DataFrame) -> pd.DataFrame:
+    """Valida todo el snapshot sin imputar datos de respuesta o cierre."""
+    faltantes = COLUMNAS_ESPERADAS - set(df.columns)
+    if faltantes:
+        raise ValueError(f"Faltan columnas esperadas: {sorted(faltantes)}")
+    df = df.copy()
+    # Solo blancos son ausencia. No convertir identificadores como NA en nulos.
+    for col in df.columns:
+        df[col] = df[col].map(lambda v: None if isinstance(v, str) and not v.strip() else v)
+    # Una carga formada solo por abiertos puede tener columnas textuales 100%
+    # nulas; pandas infiere float. Mantener tipos de claves naturales estables.
+    for col in COLUMNAS_ESPERADAS - set(FECHAS) - {"Tiempo_abierto", "Duración (minutos)"}:
+        df[col] = df[col].astype("string")
+    df["Numero_ticket"] = df["Numero_ticket"].astype("string").str.strip()
+    if df["Numero_ticket"].isna().any() or df["Numero_ticket"].duplicated().any():
+        raise ValueError("Numero_ticket debe estar informado y ser único dentro del archivo")
+    for col in FECHAS:
+        try:
+            df[col] = pd.to_datetime(df[col].map(_fecha))
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise ValueError(f"Fecha inválida en {col}") from exc
+    if df["Fecha_creacion_ticket"].isna().any():
+        raise ValueError("Fecha_creacion_ticket es obligatoria")
+    estado = df["Estado"].astype("string").str.strip().str.casefold().str.replace(r"\s+", " ", regex=True)
+    if not estado.isin(ESTADOS_ABIERTOS | ESTADOS_CERRADOS | ESTADOS_CANCELADOS).all():
+        raise ValueError("Estado ausente o no reconocido; revisar la política documentada")
+    cerrados = estado.isin(ESTADOS_CERRADOS)
+    cancelados = estado.isin(ESTADOS_CANCELADOS)
+    cierre = df["Fecha_cierre"].notna()
+    if (cerrados & ~cierre).any() or (~(cerrados | cancelados) & cierre).any():
+        raise ValueError("Estado y Fecha_cierre son inconsistentes")
+    for col in ("Fecha_respuesta", "Fecha_cierre"):
+        if (df[col].notna() & (df[col] < df["Fecha_creacion_ticket"])).any():
+            raise ValueError(f"{col} no puede preceder la creación")
+    if (cierre & df["Fecha_respuesta"].notna() & (df["Fecha_cierre"] < df["Fecha_respuesta"])).any():
+        raise ValueError("Fecha_cierre no puede preceder la respuesta")
+    for col in ("Nota_cierre", "Solucion", "Tipo_falla_cierre", "Operador_cierre", "Duración (minutos)"):
+        # Una cancelación puede traer observaciones (p. ej. ticket duplicado)
+        # sin fecha de cierre. Conservar lo recibido, sin inventar esa fecha
+        # ni exigir datos de resolución; el resto del contrato no cambia.
+        if ((~cierre) & ~cancelados & df[col].notna()).any():
+            raise ValueError(f"{col} informado sin Fecha_cierre; no se inventará cierre")
+    for col in ("Tiempo_abierto", "Duración (minutos)"):
+        try:
+            df[col] = pd.to_numeric(df[col], errors="raise")
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Valor no numérico en {col}") from exc
+        if ((df[col].notna()) & ((df[col] < 0) | ~df[col].map(lambda v: pd.isna(v) or math.isfinite(v)))).any():
+            raise ValueError(f"Duración negativa o no finita en {col}")
+    if (df["Tiempo_abierto"].dropna() % 1 != 0).any():
+        raise ValueError("Tiempo_abierto debe contener minutos enteros")
+    requeridas = ["Prioridad", "Estado", "Tipo_ticket", "Tipo_requerimiento",
+                  "Tipo_solicitud", "Tipo_falla", "Modo_apertura", "Origen", "Operador_apertura"]
+    for col in requeridas:
+        if df[col].isna().any():
+            raise ValueError(f"{col} es obligatorio")
+    for col in ("Tipo_falla_cierre", "Operador_cierre"):
+        if (cerrados & df[col].isna()).any():
+            raise ValueError(f"{col} es obligatorio para tickets cerrados/resueltos")
+    tipos = df[["Equipo", "Tipo"]].dropna(subset=["Equipo"]).drop_duplicates()
+    if tipos["Equipo"].duplicated().any():
+        raise ValueError("Un equipo tiene tipos contradictorios en el mismo archivo")
+    return df
+
+
+def filtrar_rango(df, desde=None, hasta=None):
+    """Ambos límites son días inclusivos, incluso si la fuente tiene hora."""
+    if (desde is None) != (hasta is None):
+        raise ValueError("Debes pasar --desde y --hasta juntos")
+    if desde is None:
+        return df.copy()
+    desde, hasta = pd.Timestamp(desde).normalize(), pd.Timestamp(hasta).normalize()
+    if pd.isna(desde) or pd.isna(hasta) or desde > hasta:
+        raise ValueError("Rango de fechas inválido")
+    return df[(df["Fecha_creacion_ticket"] >= desde) &
+              (df["Fecha_creacion_ticket"] < hasta + pd.Timedelta(days=1))].copy()
 
 
 def _leer_csv_robusto(path: Path) -> pd.DataFrame:
@@ -124,7 +214,8 @@ def _leer_csv_robusto(path: Path) -> pd.DataFrame:
 
     for enc in encodings:
         try:
-            df = pd.read_csv(path, sep=None, engine="python", encoding=enc)
+            df = pd.read_csv(path, sep=None, engine="python", encoding=enc,
+                             dtype={"Numero_ticket": "string"}, keep_default_na=False)
             log.info("CSV leído con encoding=%s, %d filas, %d columnas",
                      enc, len(df), len(df.columns))
             return df
@@ -152,7 +243,7 @@ def construir_dim_fecha(df: pd.DataFrame) -> pd.DataFrame:
     ]).dropna().drop_duplicates().sort_values().reset_index(drop=True)
 
     dim = pd.DataFrame({"fecha": fechas})
-    dim["fecha_key"] = dim["fecha"].dt.strftime("%Y%m%d").astype(int)
+    dim["fecha_key"] = dim["fecha"].dt.strftime("%Y%m%d").astype("Int64")
     dim["anio"] = dim["fecha"].dt.year
     dim["mes"] = dim["fecha"].dt.month
     dim["nombre_mes"] = dim["mes"].apply(lambda m: MESES[m - 1])
@@ -225,49 +316,34 @@ def construir_dimensiones(df: pd.DataFrame) -> dict:
 # ---------------------------------------------------------------------
 # LOAD — upsert de dimensiones
 # ---------------------------------------------------------------------
+def _staging(conn, nombre: str, tabla: pd.DataFrame) -> str:
+    """Tabla TEMP con tipos de destino; no comparte nombres ni datos entre sesiones."""
+    staging = "stg_" + uuid4().hex
+    cols = ", ".join(tabla.columns)
+    conn.execute(text(f"CREATE TEMP TABLE {staging} ON COMMIT DROP AS "
+                      f"SELECT {cols} FROM {SCHEMA}.{nombre} WITH NO DATA"))
+    if not tabla.empty:
+        valores = [{c: None if pd.isna(v) else v for c, v in row.items()}
+                   for row in tabla.to_dict(orient="records")]
+        insert = text(f"INSERT INTO pg_temp.{staging} ({cols}) VALUES "
+                      f"({', '.join(':' + c for c in tabla.columns)})")
+        for i in range(0, len(valores), 500):
+            conn.execute(insert, valores[i:i + 500])
+    return staging
+
+
 def _upsert_dimension(conn, nombre: str, tabla: pd.DataFrame) -> int:
-    """
-    Carga una dimensión evitando duplicados.
-
-    Estrategia:
-      1. Cargar el DataFrame a una tabla temporal (staging).
-      2. INSERT INTO <dim> SELECT ... FROM <staging> ON CONFLICT DO NOTHING.
-      3. Borrar staging.
-
-    Postgres asigna las surrogate keys (SERIAL).
-    Devuelve el número de filas efectivamente insertadas.
-    """
-    staging = f"_stg_{nombre}"
-    cols = list(tabla.columns)
-    cols_sql = ", ".join(cols)
-
-    # Resolver la cláusula ON CONFLICT según la clave natural
+    if nombre not in DIM_NATURAL_KEY:
+        raise ValueError("Dimensión no permitida")
+    staging = _staging(conn, nombre, tabla)
+    cols = ", ".join(tabla.columns)
     natural = DIM_NATURAL_KEY[nombre]
-    if isinstance(natural, tuple):
-        on_conflict = f"({', '.join(natural)})"
-    else:
-        on_conflict = f"({natural})"
-
-    # 1. Cargar a staging (sin constraints, rápido)
-    tabla.to_sql(
-        staging, conn, schema=SCHEMA,
-        if_exists="replace", index=False,
-        method="multi", chunksize=500,
-    )
-
-    # 2. Insertar a la dim real con ON CONFLICT
-    insert_sql = text(f"""
-        INSERT INTO {SCHEMA}.{nombre} ({cols_sql})
-        SELECT {cols_sql} FROM {SCHEMA}.{staging}
-        ON CONFLICT {on_conflict} DO NOTHING
-    """)
-    result = conn.execute(insert_sql)
-    insertadas = result.rowcount or 0
-
-    # 3. Limpiar staging
-    conn.execute(text(f"DROP TABLE IF EXISTS {SCHEMA}.{staging}"))
-
-    return insertadas
+    keys = ", ".join(natural) if isinstance(natural, tuple) else natural
+    result = conn.execute(text(f"INSERT INTO {SCHEMA}.{nombre} ({cols}) "
+                               f"SELECT {cols} FROM pg_temp.{staging} "
+                               f"ORDER BY {keys} ON CONFLICT ({keys}) DO NOTHING"))
+    conn.execute(text(f"DROP TABLE pg_temp.{staging}"))
+    return result.rowcount or 0
 
 
 def leer_mapeos(conn) -> dict:
@@ -305,6 +381,11 @@ def leer_mapeos(conn) -> dict:
         f"FROM {SCHEMA}.dim_apertura", conn,
     )
 
+    for nombre, tabla in mapeos.items():
+        natural = DIM_NATURAL_KEY[nombre]
+        keys = natural if isinstance(natural, tuple) else (natural,)
+        for col in keys:
+            tabla[col] = tabla[col].astype("string")
     return mapeos
 
 
@@ -322,9 +403,9 @@ def construir_fact_tickets(df: pd.DataFrame, mapeos: dict) -> pd.DataFrame:
     f = df.copy()
 
     # Fechas: dim_fecha tiene key natural YYYYMMDD
-    f["fecha_creacion_key"] = f["Fecha_creacion_ticket"].dt.strftime("%Y%m%d").astype(int)
-    f["fecha_respuesta_key"] = f["Fecha_respuesta"].dt.strftime("%Y%m%d").astype(int)
-    f["fecha_cierre_key"] = f["Fecha_cierre"].dt.strftime("%Y%m%d").astype(int)
+    f["fecha_creacion_key"] = f["Fecha_creacion_ticket"].dt.strftime("%Y%m%d").astype("Int64")
+    f["fecha_respuesta_key"] = f["Fecha_respuesta"].dt.strftime("%Y%m%d").astype("Int64")
+    f["fecha_cierre_key"] = f["Fecha_cierre"].dt.strftime("%Y%m%d").astype("Int64")
 
     # Merges contra mapeos
     f = f.merge(mapeos["dim_equipo"],
@@ -385,7 +466,9 @@ def construir_fact_tickets(df: pd.DataFrame, mapeos: dict) -> pd.DataFrame:
 
     # Validación: FKs obligatorias no deben quedar nulas (equipo y sitio sí pueden)
     obligatorias = [c for c in resultado.columns
-                    if c.endswith("_key") and c not in ("equipo_key", "sitio_key")]
+                    if c.endswith("_key") and c not in (
+                        "equipo_key", "sitio_key", "fecha_respuesta_key", "fecha_cierre_key",
+                        "falla_cierre_key", "operador_cierre_key", "clasificacion_key")]
     nulos = resultado[obligatorias].isna().sum()
     nulos = nulos[nulos > 0]
     if not nulos.empty:
@@ -402,36 +485,34 @@ def construir_fact_tickets(df: pd.DataFrame, mapeos: dict) -> pd.DataFrame:
 # ---------------------------------------------------------------------
 # LOAD — helpers
 # ---------------------------------------------------------------------
-def _delete_fact_rango(conn, desde, hasta):
-    """Borra fact_tickets en el rango de fechas para idempotencia."""
-    if desde is None or hasta is None:
-        return
-    key_desde = int(desde.strftime("%Y%m%d"))
-    key_hasta = int(hasta.strftime("%Y%m%d"))
-    result = conn.execute(text(f"""
-        DELETE FROM {SCHEMA}.fact_tickets
-        WHERE fecha_creacion_key BETWEEN :d AND :h
-    """), {"d": key_desde, "h": key_hasta})
-    log.info("Borradas %d filas de fact_tickets entre %s y %s",
-             result.rowcount or 0, desde.date(), hasta.date())
+def validar_modelo(conn):
+    """Rechaza un DDL incompatible antes de escribir; nunca migra automáticamente."""
+    columnas = {c["name"]: c for c in inspect(conn).get_columns("fact_tickets", schema=SCHEMA)}
+    from sqlalchemy import String
+    opcionales = {"fecha_respuesta_key", "fecha_cierre_key", "ts_respuesta", "ts_cierre",
+                  "falla_cierre_key", "operador_cierre_key", "clasificacion_key", "tiempo_abierto_min"}
+    if not isinstance(columnas["numero_ticket"]["type"], String) or any(
+        not columnas[n]["nullable"] for n in opcionales
+    ):
+        raise ValueError("DDL incompatible con tickets abiertos/identificadores de texto. "
+                         "Revisar docs/CONTRATO_FISICO.md y la migración propuesta; "
+                         "el ETL no modifica el modelo automáticamente.")
+    uniques = inspect(conn).get_unique_constraints("fact_tickets", schema=SCHEMA)
+    if not any(u["column_names"] == ["numero_ticket"] for u in uniques):
+        raise ValueError("Se requiere UNIQUE(numero_ticket) para la carga idempotente")
 
 
-def _truncate_todo(conn):
-    """Modo dev: vaciar todas las tablas antes de recargar."""
-    tablas = [
-        "ml_xgboost_feature_importance", "ml_xgboost_falla_pred",
-        "ml_bert_nota_cierre_pred", "ml_modelos",
-        "fact_tickets",
-        *reversed(DIMENSIONS_ORDER),
-    ]
-    for t in tablas:
-        conn.execute(text(f"TRUNCATE TABLE {SCHEMA}.{t} RESTART IDENTITY CASCADE"))
-    log.warning("TRUNCATE ejecutado en todas las tablas de %s", SCHEMA)
+def _upsert_fact(conn, fact):
+    staging = _staging(conn, "fact_tickets", fact)
+    cols = ", ".join(fact.columns)
+    updates = ", ".join(f"{c} = EXCLUDED.{c}" for c in fact.columns if c != "numero_ticket")
+    result = conn.execute(text(f"INSERT INTO {SCHEMA}.fact_tickets ({cols}) "
+                              f"SELECT {cols} FROM pg_temp.{staging} ORDER BY numero_ticket "
+                              f"ON CONFLICT (numero_ticket) DO UPDATE SET {updates}"))
+    conn.execute(text(f"DROP TABLE pg_temp.{staging}"))
+    return result.rowcount
 
 
-# ---------------------------------------------------------------------
-# LOAD — orquestación
-# ---------------------------------------------------------------------
 def cargar(dims: dict, df_original: pd.DataFrame,
            dry_run: bool = False, desde=None, hasta=None,
            truncate: bool = False):
@@ -440,6 +521,16 @@ def cargar(dims: dict, df_original: pd.DataFrame,
     La fact se construye DESPUÉS de cargar dims, usando los mapeos
     natural -> surrogate_key leídos de Postgres.
     """
+    if truncate:
+        raise ValueError("--truncate está deshabilitado: solo se permite upsert por ticket")
+    df_original = validar_entrada(df_original)
+    if desde is not None or hasta is not None:
+        df_original = filtrar_rango(df_original, desde, hasta)
+    if df_original.empty:
+        log.info("Sin tickets que cargar")
+        return
+    # Las dimensiones provienen siempre de las mismas filas validadas/filtradas.
+    dims = construir_dimensiones(df_original)
     if dry_run:
         log.info("[dry-run] No se escribe en la base. Resumen:")
         for nombre in DIMENSIONS_ORDER:
@@ -452,8 +543,12 @@ def cargar(dims: dict, df_original: pd.DataFrame,
 
     try:
         with engine.begin() as conn:
-            if truncate:
-                _truncate_todo(conn)
+            validar_modelo(conn)
+            if inspect(conn).has_table('etl_lotes', schema=SCHEMA):
+                raise ValueError('Usar carga_operacional.cargar_lote: el esquema operacional exige auditoría')
+            # Serializa este ETL por base y esquema. Lock liberado por commit/rollback.
+            # Evita carreras de dimensiones y actualizaciones parciales entre cargas.
+            conn.execute(text("SELECT pg_advisory_xact_lock(712984321)"))
 
             # 1. DIMENSIONES
             for nombre in DIMENSIONS_ORDER:
@@ -468,36 +563,37 @@ def cargar(dims: dict, df_original: pd.DataFrame,
             # 3. CONSTRUIR FACT con keys reales
             fact = construir_fact_tickets(df_original, mapeos)
 
-            # 4. CARGAR FACT (idempotente por rango)
-            _delete_fact_rango(conn, desde, hasta)
-            fact.to_sql("fact_tickets", conn, schema=SCHEMA,
-                        if_exists="append", index=False,
-                        method="multi", chunksize=200)
-            log.info("Fact fact_tickets           -> %d filas insertadas", len(fact))
+            # Actualiza por clave natural sin borrar otros tickets ni cambiar ticket_key.
+            _upsert_fact(conn, fact)
+            log.info("Fact fact_tickets -> %d tickets insertados/actualizados", len(fact))
 
         log.info("Carga completada en %.2fs", time.time() - t0)
 
     except Exception:
-        log.exception("Error durante la carga; la transacción fue revertida.")
+        log.error("Error durante la carga; la transacción fue revertida.")
         raise
+    finally:
+        engine.dispose()
 
 
 # ---------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------
-def main():
+def main_historico():
     parser = argparse.ArgumentParser(description="ETL Excel/CSV -> esquema estrella Postgres")
     parser.add_argument("--excel", required=True,
                         help="Ruta al archivo fuente (.xlsx o .csv)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Solo transformar y validar, no escribir en la BD")
     parser.add_argument("--truncate", action="store_true",
-                        help="Vaciar todas las tablas antes de cargar (solo dev)")
+                        help="Opción heredada deshabilitada; siempre se rechaza")
     parser.add_argument("--desde", type=str, default=None,
                         help="Fecha inicial para modo incremental (YYYY-MM-DD)")
     parser.add_argument("--hasta", type=str, default=None,
                         help="Fecha final para modo incremental (YYYY-MM-DD)")
     args = parser.parse_args()
+    if args.truncate:
+        parser.error("--truncate está deshabilitado; carga idempotente por Numero_ticket")
 
     desde = pd.to_datetime(args.desde).normalize() if args.desde else None
     hasta = pd.to_datetime(args.hasta).normalize() if args.hasta else None
@@ -514,8 +610,7 @@ def main():
 
         if desde is not None:
             antes = len(df)
-            df = df[(df["Fecha_creacion_ticket"] >= desde) &
-                    (df["Fecha_creacion_ticket"] <= hasta)].copy()
+            df = filtrar_rango(df, desde, hasta)
             log.info("Filtro incremental %s..%s: %d -> %d filas",
                      desde.date(), hasta.date(), antes, len(df))
 
@@ -533,6 +628,11 @@ def main():
     except Exception:
         log.exception("=== ETL FALLIDO tras %.2fs ===", time.time() - t_inicio)
         sys.exit(1)
+
+
+def main():
+    from carga_operacional import main as main_operacional
+    main_operacional()
 
 
 if __name__ == "__main__":

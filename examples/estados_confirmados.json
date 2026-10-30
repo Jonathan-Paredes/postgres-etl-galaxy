@@ -1,0 +1,43 @@
+{
+  "origen": "PostgreSQL descartable, estados confirmados y datos sintéticos",
+  "lote": {
+    "lote_id": "cd489be1-3306-46af-9ca0-547252abc85a",
+    "fecha_inicio": "2026-10-29 22:33:19.836850-03:00",
+    "fecha_fin": "2026-10-29 22:33:20.190693-03:00",
+    "fecha_corte": "2025-03-06 05:30:00-03:00",
+    "archivo_origen": "fixture_sintetico.xlsx",
+    "hash_archivo": "198fc3445bbacd765647734dd20dbf08e5ab84ac96ba052f96c29b843feb6873",
+    "ventana_desde": "2025-02-27 05:30:00-03:00",
+    "solapamiento_dias": 7,
+    "modo_extraccion": "ARCHIVO_SIN_MARCA",
+    "columna_modificacion": null,
+    "politica_conflicto": "RECHAZAR",
+    "filas_recibidas": 5,
+    "filas_seleccionadas": 5,
+    "filas_insertadas": 5,
+    "filas_actualizadas": 0,
+    "filas_sin_cambios": 0,
+    "alertas_detectadas": 1,
+    "alertas_nuevas": 1,
+    "estado_ejecucion": "COMPLETADO",
+    "error_codigo": null
+  },
+  "estados": {
+    "IT3-001": "Cerrado",
+    "IT3-002": "Abierto",
+    "IT3-003": "Pendiente",
+    "IT3-004": "Cancelado",
+    "IT3-005": "Work in Progress"
+  },
+  "alertas": [
+    {
+      "alerta_id": 1,
+      "numero_ticket": "IT3-005",
+      "codigo_regla": "WIP_EN_CORTE_0530",
+      "fecha_corte": "2025-03-06 05:30:00-03:00",
+      "estado_observado": "Work in Progress",
+      "lote_id": "cd489be1-3306-46af-9ca0-547252abc85a",
+      "fecha_deteccion": "2026-10-29 22:33:20.180016-03:00"
+    }
+  ]
+}

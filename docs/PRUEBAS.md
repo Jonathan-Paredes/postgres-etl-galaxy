@@ -1,29 +1,34 @@
-# Plan de pruebas del ETL
+> Documento de iteración 1. El flujo operacional y la política vigente de versiones se amplían en [ITERACION_2.md](ITERACION_2.md).
 
-Las verificaciones ejecutadas se registran en VALIDACION.md. La siguiente matriz es trabajo pendiente; no implica aprobación.
+# Pruebas del ETL
 
-| Nivel | Caso | Resultado esperado |
-| --- | --- | --- |
-| Extracción | CSV UTF-8 y punto y coma; Excel Sheet1 | Mismas filas y tipos de fecha |
-| Extracción | Duplicados por Numero_ticket | Rechazo explícito |
-| Extracción | Columna ausente, fecha inválida y archivo inexistente | Error controlado y explicativo |
-| Transformación | Dimensiones repetidas, claves compuestas y operadores | Valores únicos y mapeo correcto |
-| Transformación | Fechas nulas y equipo/sitio ausentes | Política definida y comprobada |
-| Rango | Último día a 00:00, 12:00 y 23:59 | Incluir todo el día final; fallo conocido a corregir |
-| Carga aislada | Primera carga | Filas esperadas y claves válidas |
-| Carga aislada | Repetir el mismo rango completo | Sin duplicados y mismos conteos |
-| Carga aislada | Repetir sin rango | Evidenciar duplicados o conflicto según constraints |
-| Carga aislada | Archivo parcial para un rango existente | Evitar pérdida involuntaria: definir estrategia |
-| Transacción | Fallo inducido después de dimensiones | Estado previo preservado por rollback |
-| Concurrencia | Dos cargas simultáneas | Evidenciar colisión de staging y definir solución |
-| Desarrollo aislado | truncate con tablas ML | Solo en base descartable; comprobar alcance CASCADE |
+La batería actual usa el fixture Excel original sin editar y DDL original más
+migración propuesta, solo en PostgreSQL descartable. Estado y conteos ejecutados
+en RESULTADOS_HARDENING.md. No declarar integración aprobada si pytest la omite.
 
-## Orden recomendado
+## Unitarias
 
-1. Incorporar scripts SQL reales y preparar una base descartable independiente.
-2. Corregir los casos conocidos de fechas y validar transformaciones con fixtures sintéticos.
-3. Probar primera carga, repetición por rango y rollback.
-4. Comparar conteos y claves con SQL de control.
-5. Registrar versión, fecha, entrada, comando, resultado y evidencia sin credenciales.
+python -m pytest tests/test_unit.py -v
 
-No usar la base existente como objetivo de pruebas destructivas. Las pruebas de integración quedan pendientes mientras no se cuente con la instancia y el DDL.
+Columnas antes de fechas, estados, blancos, datos no parseables, nulos legítimos,
+secuencia temporal, cierre no inventado, duplicados, límite inclusivo,
+credenciales obligatorias, contraseñas con caracteres reservados y dry-run sin DB.
+
+## PostgreSQL real
+
+python scripts/run_tests.py
+
+O usar --postgres-bin apuntando a los binarios PostgreSQL portátiles oficiales.
+No usa una DB de negocio. Cada caso crea una DB UUID nueva desde template1,
+aplica baseline y la migración cuando corresponde, y elimina solo esa DB.
+Guardia: TEST_PG_URL debe indicar etl_test_control en localhost; el runner genera
+la instancia y credenciales. No establecer esa variable hacia un servidor real.
+
+Prueba DDL incompatible sin escrituras, carga de abiertos/cerrados, repetición
+idempotente, cambio de estado y reapertura conservando PK y referencias ML,
+carga parcial sin pérdida del período, último día con hora, rollback después
+de dimensiones, concurrencia y migración preservando identificadores numéricos.
+
+Nunca se llama --truncate. Las variantes se crean en memoria, sin reescribir el
+fixture. Los resultados no prueban que el DDL de Galaxy instalado coincida con
+los scripts encontrados; esa verificación permanece separada.

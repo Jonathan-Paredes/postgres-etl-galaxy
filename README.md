@@ -1,100 +1,105 @@
-# Postgres_ETL — Minera Galaxy
+# Postgres ETL — Minera Galaxy
 
-Pipeline Python que extrae tickets desde Excel o CSV, construye dimensiones y carga un modelo estrella en PostgreSQL, esquema `galaxy_dw`.
+Pipeline Excel/CSV a once dimensiones y un hecho en PostgreSQL, esquema
+`galaxy_dw`. Soporta tickets abiertos, pendientes, en progreso y cerrados,
+actualizando por Numero_ticket sin eliminar otros tickets del período.
 
-**Estado: implementación funcional según el autor, con pruebas de carga pendientes.** La revisión de preparación no ejecutó escrituras en la base. Los datos representan una minera ficticia y son sintéticos según declaración del autor.
+## Iteración 3: cinco estados confirmados
 
-## Alcance implementado
+Cerrado, Abierto, Pendiente, Cancelado y Work in Progress son legítimos y se
+conservan literalmente. Solo WIP genera WIP_EN_CORTE_0530; no bloquea el lote ni
+se convierte a otro estado. Cancelado conserva observaciones y referencias sin
+inventar cierre. No cambian versionado, idempotencia ni alertas históricas.
 
-- Lectura de Excel (`Sheet1`) y CSV con detección de separador y alternativas de codificación.
-- Conversión de fechas, comprobación de columnas y detección de tickets duplicados en el archivo.
-- Construcción de once dimensiones y una tabla de hechos.
-- Inserción de dimensiones con staging y `ON CONFLICT DO NOTHING`.
-- Resolución de claves sustitutas a partir de PostgreSQL.
-- Carga dentro de una transacción y logging con rotación.
-- Filtro por rango, modo de inspección `--dry-run` y recarga destructiva de desarrollo `--truncate`.
+[Contrato definitivo y compatibilidad](docs/ITERACION_3_CONTRATO_ESTADOS.md) ·
+[Resultados JUnit ejecutados](docs/ITERACION_3_RESULTADOS.md).
 
-## Arquitectura
+## Iteración 2: flujo operacional auditado
 
-```mermaid
-flowchart LR
-  F[Excel / CSV] --> E[Extracción y validación]
-  E --> D[Dimensiones]
-  D --> S[Staging y claves PostgreSQL]
-  S --> H[Construcción de fact_tickets]
-  H --> P[(galaxy_dw)]
-  P --> A[Agente Minera Galaxy]
-```
+La CLI ahora usa cortes a las **05:30 America/Santiago**, solapamiento configurable
+de siete días, lotes auditados, control de versiones y alertas WIP históricas sin
+alterar tickets. Requiere la migración **aditiva 04**, además de 03, solo tras revisión.
+No se aplica automáticamente a Galaxy.
 
-## Estructura
+[Contrato, políticas y ejecución local](docs/ITERACION_2.md) ·
+[Resultados ejecutados](docs/ITERACION_2_RESULTADOS.md).
 
-```text
-scr/etl_original.py       CLI y etapas ETL
-scr/db.py                 conexión SQLAlchemy
-scr/logger.py             logging
-scr/etl.ipynb             notebook exploratorio original
-requirements.txt          lista original del entorno
-requirements-runtime.txt  dependencias de ejecución complementadas
-docs/                     arquitectura, pruebas y publicación
-```
+Los ejemplos históricos de carga sin fecha-corte usan ahora el último corte
+efectivo; para reproducibilidad pasar --fecha-corte con offset. La carga auditada
+rechaza por defecto cambios contradictorios sin evidencia temporal. No se usa
+creación como modificación ni se corrige WIP a Pendiente. Sin marca de origen,
+se procesan todas las filas entregadas; la extracción debe garantizar su cobertura.
 
-Se conserva el nombre existente `scr`. El notebook no se incluye en el paquete público preparado: requiere revisar código, salidas y metadatos antes de publicarlo.
+## Revisar el modelo antes de cargar
+
+Leer [contrato físico](docs/CONTRATO_FISICO.md). Los scripts originales del autor
+se conservan en sql/baseline. Exigen cierre e identificadores INT; el fixture
+usa OPEN-001 y datos de cierre ausentes. La [migración propuesta](sql/03_open_tickets.sql)
+permite NULL en esos campos y convierte numero_ticket a TEXT conservando PK,
+UNIQUE y FKs. **El ETL no aplica migraciones automáticamente.** No aplicarla a
+Galaxy sin confirmar DDL vigente y revisar consumidores.
 
 ## Instalación
 
+Python 3.12, dependencias de ejecución en requirements-runtime.txt y pruebas en
+requirements-test.txt. Se conserva el directorio scr por compatibilidad.
+
 ```powershell
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements-runtime.txt
+.venv\Scripts\python.exe -m pip install -r requirements-test.txt
 ```
 
-Python 3.12 es el entorno local de referencia. Las dependencias no están fijadas como un entorno reproducible validado. `.xls` aparece aceptado en el código, pero requiere un motor adicional como xlrd, no incluido aquí; preferir `.xlsx` o CSV.
-
-## Configuración
-
-`scr/db.py` lee variables de entorno del proceso, **no carga `.env` automáticamente**. Configurarlas en la terminal antes de cargar datos:
+## Comprobar sin conectar a PostgreSQL
 
 ```powershell
-$env:DB_HOST = '127.0.0.1'
-$env:DB_PORT = '5432'
-$env:DB_NAME = 'Galaxy_mina'
-$env:DB_USER = 'galaxy_etl'
-$env:DB_PASSWORD = 'REEMPLAZAR_LOCALMENTE'
-$env:LOG_TO_FILE = '0'
+.venv\Scripts\python.exe scr/etl_original.py --excel tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx --dry-run
+.venv\Scripts\python.exe -m pytest -m "not integration" -v
 ```
 
-Se requiere un PostgreSQL existente con las tablas, constraints y claves correctas. Los scripts `sql/01_schema_estrella.sql` y `sql/02_tablas_ml.sql`, mencionados en el código, no están en la carpeta revisada. Tampoco hay Compose ni dump para recrearlo. No se debe presentar la instalación como reproducible de extremo a extremo hasta incorporar esos componentes.
+dry-run valida entrada y plan de extracción; no prueba conflictos contra la base,
+la fact, la persistencia de auditoría ni el modelo físico.
 
-## Ejecución segura inicial
+## Cargar a una base autorizada y compatible
+
+Definir las cinco variables DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASSWORD.
+No hay destino ni credenciales predeterminados; no se carga .env automáticamente.
+.env.example es solo una plantilla. No registrar contraseñas en comandos compartidos.
 
 ```powershell
-.venv\Scripts\python.exe scr/etl_original.py --excel examples/tickets_sinteticos.csv --dry-run
+.venv\Scripts\python.exe scr/etl_original.py --excel tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx
 ```
 
-El ejemplo contiene filas ficticias creadas para demostración. `--dry-run` extrae datos y construye dimensiones; termina antes de conectar, construir la fact o verificar constraints. **Un dry-run exitoso no demuestra que la carga funcione.**
+El archivo es un snapshot completo por ticket: los NULL explícitos reemplazan
+valores anteriores y permiten reaperturas. ON CONFLICT conserva ticket_key y
+no modifica tablas ML. En el flujo operacional se usa la huella y evidencia de corte/modificación;
+los snapshots contradictorios sin evidencia suficiente se rechazan.
 
-Para una base aislada de pruebas ya preparada:
+La CLI operacional no acepta --desde/--hasta porque filtraban creación.
+Usar --columna-modificacion únicamente con marca real adicional del origen;
+sin ella no se filtra el archivo por antigüedad. --truncate está deshabilitado.
+
+## Integración con PostgreSQL descartable
 
 ```powershell
-.venv\Scripts\python.exe scr/etl_original.py --excel examples/tickets_sinteticos.csv --desde 2025-03-01 --hasta 2025-03-31
+# Docker activo; postgres:17, puerto local aleatorio, sin volúmenes de Galaxy
+.venv\Scripts\python.exe scripts/run_tests.py
+# Alternativa: ZIP oficial PostgreSQL extraído, sin instalar un servicio
+.venv\Scripts\python.exe scripts/run_tests.py --postgres-bin C:\ruta\pgsql\bin
 ```
 
-Esta orden escribe y elimina previamente los hechos del rango indicado. Solo usar datos que cubran por completo el rango que se reemplaza. No ejecutar contra una base que se deba preservar.
-
-## Limitaciones importantes
-
-- Sin rango, la fact se agrega con append; repetir no garantiza idempotencia.
-- Con rango, se borran todos los hechos del rango, aunque el archivo solo contenga una parte.
-- El límite `--hasta` se compara a medianoche: registros posteriores a las 00:00 del último día pueden quedar fuera. Pendiente de corrección y pruebas.
-- Fechas inválidas se convierten a NaT en extracción, pero al construir las claves enteras de la fact pueden causar error.
-- La comprobación de columnas se realiza después de acceder a las fechas: una fecha ausente puede producir KeyError antes del mensaje de columnas faltantes.
-- Staging usa tablas persistentes con nombres fijos, no tablas TEMP de sesión; no asumir seguridad para ejecuciones concurrentes.
-- `--truncate` vacía dimensiones, hechos y cuatro tablas ML con CASCADE. No se ejecutó en esta revisión.
-- El batch existente usa el entorno local `etl_venv` y está configurado en dry-run.
+Runner genera credenciales, instancia y bases UUID temporales; detiene únicamente
+su propia instancia al terminar. No lee .env ni usa el destino Galaxy. Los tests
+solo eliminan sus bases descartables. Resultados JUnit en test-results/junit.xml.
+Sin TEST_PG_URL, pytest directo omite integración explícitamente; usar el runner
+para ejecutarla. [Resultados realmente ejecutados](docs/ITERACION_2_RESULTADOS.md).
 
 ## Documentación
 
-- [Modelo y contrato de entrada](docs/ARQUITECTURA.md)
-- [Plan de pruebas](docs/PRUEBAS.md)
-- [Preparación para GitHub](docs/PUBLICACION.md)
+- [Agente operacional de las 21:00 — Iteración 4](docs/ITERACION_4_AGENTE_OPERACIONAL.md)
+- [Contrato de entrada y modelo](docs/CONTRATO_FISICO.md)
+- [Cambios, decisiones y limitaciones](docs/ENDURECIMIENTO.md)
+- [Fixture original preservado](docs/FIXTURE.md)
+- [Pruebas y comandos](docs/PRUEBAS.md)
 
-No se incluye una licencia de reutilización; elección pendiente del autor.
+Solo datos sintéticos. No se incluyen credenciales, dumps ni entornos virtuales.
+El autor aún no ha seleccionado licencia de reutilización.

@@ -1,0 +1,21 @@
+Estimados, buenas noches.
+
+Se adjunta el estado operacional de la mina, con el gráfico de distribución por componentes y conteo de incidentes y requerimientos.
+
+Corte: 2025-03-06T21:00:00-03:00 (America/Santiago).
+
+Resumen de incidentes:
+Pendientes: 11
+Abiertos: 2
+Work in Progress: 1
+
+Resumen de requerimientos:
+Pendientes: 2
+Abiertos: 1
+Work in Progress: 1
+
+Observaciones:
+Se detectan tickets Work in Progress al corte de las 21:00: I-014, SR-004. Se registra evidencia de incumplimiento sin modificar tickets.
+
+Saludos,
+Mesa de Ayuda.

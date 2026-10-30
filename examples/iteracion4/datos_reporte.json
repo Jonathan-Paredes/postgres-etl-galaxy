@@ -1,0 +1,119 @@
+{
+  "fuente": "mesa-sintetica",
+  "corte": "2025-03-07T00:00:00+00:00",
+  "corte_santiago": "2025-03-06T21:00:00-03:00",
+  "hash_instantanea": "e3a30e8c880a387dd8ea9f98128c7e2745e9d2bdb359112965769f69661db6df",
+  "leidos": 20,
+  "activos": 18,
+  "por_componente": [
+    {
+      "componente": "Aplicaciones",
+      "Incident": 0,
+      "Service Request": 2
+    },
+    {
+      "componente": "CCTV",
+      "Incident": 3,
+      "Service Request": 0
+    },
+    {
+      "componente": "Enlaces",
+      "Incident": 4,
+      "Service Request": 0
+    },
+    {
+      "componente": "Radios TETRA",
+      "Incident": 3,
+      "Service Request": 0
+    },
+    {
+      "componente": "Redes",
+      "Incident": 4,
+      "Service Request": 1
+    },
+    {
+      "componente": "Telefonía",
+      "Incident": 0,
+      "Service Request": 1
+    }
+  ],
+  "por_estado": [
+    {
+      "estado": "Pendiente",
+      "Incident": 11,
+      "Service Request": 2
+    },
+    {
+      "estado": "Abierto",
+      "Incident": 2,
+      "Service Request": 1
+    },
+    {
+      "estado": "Work in Progress",
+      "Incident": 1,
+      "Service Request": 1
+    }
+  ],
+  "conteos_por_tipo_estado": [
+    {
+      "tipo": "Incident",
+      "estado": "Abierto",
+      "cantidad": 2
+    },
+    {
+      "tipo": "Incident",
+      "estado": "Cancelado",
+      "cantidad": 0
+    },
+    {
+      "tipo": "Incident",
+      "estado": "Cerrado",
+      "cantidad": 1
+    },
+    {
+      "tipo": "Incident",
+      "estado": "Pendiente",
+      "cantidad": 11
+    },
+    {
+      "tipo": "Incident",
+      "estado": "Work in Progress",
+      "cantidad": 1
+    },
+    {
+      "tipo": "Service Request",
+      "estado": "Abierto",
+      "cantidad": 1
+    },
+    {
+      "tipo": "Service Request",
+      "estado": "Cancelado",
+      "cantidad": 1
+    },
+    {
+      "tipo": "Service Request",
+      "estado": "Cerrado",
+      "cantidad": 0
+    },
+    {
+      "tipo": "Service Request",
+      "estado": "Pendiente",
+      "cantidad": 2
+    },
+    {
+      "tipo": "Service Request",
+      "estado": "Work in Progress",
+      "cantidad": 1
+    }
+  ],
+  "tickets_wip": [
+    {
+      "numero_ticket": "I-014",
+      "estado_observado": "Work in Progress"
+    },
+    {
+      "numero_ticket": "SR-004",
+      "estado_observado": "Work in Progress"
+    }
+  ]
+}

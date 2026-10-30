@@ -1,0 +1,11 @@
+{
+  "scr/etl_original.py": "628b8b7790ae614c8705d6271e3971e80675aeb2632b3431183a683a5b3ddda5",
+  "scr/alertas_operacionales.py": "504fea225945d424d74d99f23e34e854e4d90aa9d8bc00d9cbfbc5078c616416",
+  "scr/carga_operacional.py": "32af6da4d70a0b0eb1bbe095b7a68d08c5b77619d736a912b97fbb5a0301b6b6",
+  "tests/test_estados_unit.py": "c9667d4a0b30ef01a555687949203c622855a5d2bf20ceaad50cb95275b6f618",
+  "tests/test_estados_postgres.py": "9ce156380e16d709e25da20db84186f17b3da865111c3ac191d8767738906930",
+  "tests/test_operacional_unit.py": "2d410dda6dc585a6b092bdab71a1d2216d8865cc7333596fa535ed9d78587224",
+  "tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx": "aa2da025cef3321cae8036cc94e44522a067d1f74c48e457ef74cce88528093a",
+  "sql/03_open_tickets.sql": "c00e80531dec59e5665c6907d101bea60f4783f4970e3e838dca743782e1af4b",
+  "sql/04_lotes_alertas.sql": "a853d1808c2458c9a1ae58ed6b021c219fac143a174164636ec426e44f82759b"
+}
