@@ -8,6 +8,8 @@ Fecha local: 29 de octubre de 2026. Rama feature/etl-hardening-open-tickets.
 PostgreSQL 17.11 real, en instancia portátil descartable. Código de salida 0.
 Pytest reportó 27,57 segundos para la batería (no incluye inicialización del
 cluster). JUnit adjunto en HARDENING_JUNIT.xml y hashes en HARDENING_MANIFEST.json.
+Los hashes corresponden al contenido Git; normalizan CRLF a LF en Python según
+.gitattributes. El fixture binario y el baseline SQL conservan sus bytes originales.
 
 Comando del repositorio:
 
