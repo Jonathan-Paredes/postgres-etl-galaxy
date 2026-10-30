@@ -4,7 +4,17 @@ Pipeline Excel/CSV a once dimensiones y un hecho en PostgreSQL, esquema
 `galaxy_dw`. Soporta tickets abiertos, pendientes, en progreso y cerrados,
 actualizando por Numero_ticket sin eliminar otros tickets del período.
 
-## Iteración 2: flujo operacional actual
+## Iteración 3: cinco estados confirmados
+
+Cerrado, Abierto, Pendiente, Cancelado y Work in Progress son legítimos y se
+conservan literalmente. Solo WIP genera WIP_EN_CORTE_0530; no bloquea el lote ni
+se convierte a otro estado. Cancelado conserva observaciones y referencias sin
+inventar cierre. No cambian versionado, idempotencia ni alertas históricas.
+
+[Contrato definitivo y compatibilidad](docs/ITERACION_3_CONTRATO_ESTADOS.md) ·
+[Resultados JUnit ejecutados](docs/ITERACION_3_RESULTADOS.md).
+
+## Iteración 2: flujo operacional auditado
 
 La CLI ahora usa cortes a las **05:30 America/Santiago**, solapamiento configurable
 de siete días, lotes auditados, control de versiones y alertas WIP históricas sin

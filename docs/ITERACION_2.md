@@ -36,12 +36,14 @@ WORK_IN_PROGRESS, En progreso y En proceso normalizan a WORK_IN_PROGRESS;
 el estado guardado en la dimensión/hecho y la evidencia conservan el texto
 original. No se cambia WIP por Pendiente y no se bloquea el lote por esta regla.
 
-Pendiente y Cerrado no disparan WIP. Los estados históricos Abierto, Resuelto y
-Escalado conservan la compatibilidad anterior, sin afirmar que cumplan una
-regla operacional todavía no definida para ellos. Cancelado/suspendido no
-tienen correspondencia confirmada: el motor no inventa una y el validador de
-entrada los rechaza antes de escribir, con lote fallido. No se los cierra ni
-se los cambia de estado automáticamente.
+Contrato corregido por operación en iteración 3: Cerrado, Abierto, Pendiente,
+Cancelado y Work in Progress son estados legítimos. Solo Work in Progress
+dispara WIP_EN_CORTE_0530; los otros cuatro no generan esa alerta. Se conserva
+literalmente el estado y las observaciones. Cancelado ya no se rechaza como
+desconocido ni exige inventar cierre para conservar una nota. Ver
+[contrato definitivo](ITERACION_3_CONTRATO_ESTADOS.md).
+Los valores y alias históricos previamente aceptados conservan compatibilidad;
+Suspendido y otros estados no confirmados no se agregan silenciosamente.
 
 WIP superior a dos horas NO está implementado: requiere una marca verificable
 de entrada a WIP del sistema operacional. Creación, respuesta, duración final

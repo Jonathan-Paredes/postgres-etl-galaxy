@@ -1,3 +1,5 @@
+> Informe histórico del commit ea33dd8. El contrato y resultados vigentes están en ITERACION_3_CONTRATO_ESTADOS.md e ITERACION_3_RESULTADOS.md.
+
 # Iteración 2 — resultados e integridad
 
 Fecha: 29 de octubre de 2026 (America/Santiago). Rama
@@ -108,7 +110,7 @@ sí calcula SHA256 sobre exactamente los bytes que parsea (prueba unitaria ejecu
 - No se configuraron roles append-only ni auditoría por triggers de SQL externo.
   Todos los escritores operacionales deben usar la vía auditada.
 - Los resultados y hashes de HARDENING_* son históricos de iteración 1; el
-  manifiesto actual es ITERACION_2_MANIFEST.json (contenido Git, LF para código).
+  manifiesto de esa iteración es ITERACION_2_MANIFEST.json (contenido Git, LF para código).
 
 Para reproducir y consultar evidencia: ver ITERACION_2.md. No ejecutar las
 migraciones contra una base existente sin revisar y autorizar ese despliegue.

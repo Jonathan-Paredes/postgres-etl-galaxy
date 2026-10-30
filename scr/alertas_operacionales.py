@@ -9,7 +9,7 @@ def normalizar_estado(estado: str) -> str:
     return {
         'work in progress': 'WORK_IN_PROGRESS', 'wip': 'WORK_IN_PROGRESS',
         'en progreso': 'WORK_IN_PROGRESS', 'en proceso': 'WORK_IN_PROGRESS',
-        'pendiente': 'PENDIENTE', 'cerrado': 'CERRADO',
+        'pendiente': 'PENDIENTE', 'cerrado': 'CERRADO', 'cancelado': 'CANCELADO',
         'abierto': 'ABIERTO', 'resuelto': 'RESUELTO', 'escalado': 'ESCALADO',
     }.get(key, 'NO_CONFIRMADO')
 

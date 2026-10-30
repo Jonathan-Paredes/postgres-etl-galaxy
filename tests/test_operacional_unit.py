@@ -23,8 +23,8 @@ def test_motor_puro_conserva_original(estado):
     assert row==before
     assert alert.codigo_regla=='WIP_EN_CORTE_0530'
 
-def test_cancelado_sin_correspondencia_confirmada():
-    assert normalizar_estado('Cancelado')=='NO_CONFIRMADO'
+def test_cancelado_con_correspondencia_confirmada():
+    assert normalizar_estado('Cancelado')=='CANCELADO'
 
 @pytest.mark.parametrize('hora,esperado',[(5,5),(4,5),(6,6)])
 def test_ultimo_corte_efectivo(hora,esperado):

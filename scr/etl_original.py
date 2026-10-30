@@ -104,6 +104,9 @@ COLUMNAS_ESPERADAS = {
 }
 ESTADOS_ABIERTOS = {"abierto", "pendiente", "en progreso", "en proceso", "escalado", "work in progress", "work_in_progress", "wip"}
 ESTADOS_CERRADOS = {"cerrado", "resuelto"}
+# Cancelado es un estado operacional propio: no implica que se conozcan los
+# datos de cierre. Los alias históricos anteriores se conservan sin ampliarlos.
+ESTADOS_CANCELADOS = {"cancelado"}
 
 
 def _fecha(valor):
@@ -147,11 +150,12 @@ def validar_entrada(df: pd.DataFrame) -> pd.DataFrame:
     if df["Fecha_creacion_ticket"].isna().any():
         raise ValueError("Fecha_creacion_ticket es obligatoria")
     estado = df["Estado"].astype("string").str.strip().str.casefold().str.replace(r"\s+", " ", regex=True)
-    if not estado.isin(ESTADOS_ABIERTOS | ESTADOS_CERRADOS).all():
+    if not estado.isin(ESTADOS_ABIERTOS | ESTADOS_CERRADOS | ESTADOS_CANCELADOS).all():
         raise ValueError("Estado ausente o no reconocido; revisar la política documentada")
     cerrados = estado.isin(ESTADOS_CERRADOS)
+    cancelados = estado.isin(ESTADOS_CANCELADOS)
     cierre = df["Fecha_cierre"].notna()
-    if (cerrados & ~cierre).any() or (~cerrados & cierre).any():
+    if (cerrados & ~cierre).any() or (~(cerrados | cancelados) & cierre).any():
         raise ValueError("Estado y Fecha_cierre son inconsistentes")
     for col in ("Fecha_respuesta", "Fecha_cierre"):
         if (df[col].notna() & (df[col] < df["Fecha_creacion_ticket"])).any():
@@ -159,7 +163,10 @@ def validar_entrada(df: pd.DataFrame) -> pd.DataFrame:
     if (cierre & df["Fecha_respuesta"].notna() & (df["Fecha_cierre"] < df["Fecha_respuesta"])).any():
         raise ValueError("Fecha_cierre no puede preceder la respuesta")
     for col in ("Nota_cierre", "Solucion", "Tipo_falla_cierre", "Operador_cierre", "Duración (minutos)"):
-        if ((~cierre) & df[col].notna()).any():
+        # Una cancelación puede traer observaciones (p. ej. ticket duplicado)
+        # sin fecha de cierre. Conservar lo recibido, sin inventar esa fecha
+        # ni exigir datos de resolución; el resto del contrato no cambia.
+        if ((~cierre) & ~cancelados & df[col].notna()).any():
             raise ValueError(f"{col} informado sin Fecha_cierre; no se inventará cierre")
     for col in ("Tiempo_abierto", "Duración (minutos)"):
         try:

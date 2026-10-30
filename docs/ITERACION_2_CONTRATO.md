@@ -47,8 +47,9 @@ Si el contenido es idéntico, un reproceso antiguo no regresa el último corte.
 
 WIP se conserva como fue recibido, se normaliza solo para evaluar regla
 WIP_EN_CORTE_0530 y no bloquea el lote. En progreso/En proceso son alias
-compatibles de WORK_IN_PROGRESS. Cancelado y estados sin correspondencia
-confirmada no se mapean ni se corrigen automáticamente.
+compatibles de WORK_IN_PROGRESS. La restricción preliminar de Cancelado fue
+corregida en iteración 3: es legítimo y normaliza a CANCELADO, sin alerta WIP.
+Ver ITERACION_3_CONTRATO_ESTADOS.md. No se agregan otros estados sin confirmación.
 
 WIP >2h queda pendiente de una marca real de entrada al estado del sistema
 operacional; no se usa creación, respuesta, duración ni Tiempo_abierto como
