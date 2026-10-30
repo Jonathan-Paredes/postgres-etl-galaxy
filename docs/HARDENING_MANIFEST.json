@@ -1,0 +1,8 @@
+{
+  "scr/etl_original.py": "468bf9c7a4927221e7553f66a5cd6a947bdf427a8c43b77ad0eff9a3597a185f",
+  "scr/db.py": "c4561d9720f12ae5e3eef393968060892846828116b0937cfc4eaea3b5372763",
+  "tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx": "aa2da025cef3321cae8036cc94e44522a067d1f74c48e457ef74cce88528093a",
+  "sql/baseline/01_schema_estrella.sql": "7629d35213248ccdccdf1a6970eb26208e2c372f8b93756e447e793aadf6c09b",
+  "sql/baseline/02_tablas_ml.sql": "ff6cc36293e0340e9829dabe93723fe1acf39411db870debbd687d0de09d38b1",
+  "sql/03_open_tickets.sql": "c00e80531dec59e5665c6907d101bea60f4783f4970e3e838dca743782e1af4b"
+}

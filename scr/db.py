@@ -1,46 +1,23 @@
-"""
-Conexión a PostgreSQL para el ETL.
-
-Centraliza la creación del engine de SQLAlchemy a partir de variables
-de entorno, con valores por defecto para desarrollo local (Docker).
-"""
+"""Conexión explícita; no hay credenciales ni destino predeterminados."""
 import os
-
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-
-from logger import get_logger
-
-log = get_logger(__name__)
+from sqlalchemy.engine import URL, Engine
 
 
 def get_engine() -> Engine:
-    """
-    Devuelve un Engine de SQLAlchemy hacia Postgres.
-
-    Configuración por variables de entorno (con defaults para dev local):
-      - DB_HOST      (default: localhost)
-      - DB_PORT      (default: 5432)
-      - DB_NAME      (default: Galaxy_mina)
-      - DB_USER      (default: postgres)
-      - DB_PASSWORD  (default: password)
-
-    El engine usa pool_pre_ping para reconectar si la conexión se cayó,
-    y echo=False para no spamear los logs con cada SQL.
-    """
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-    name = os.getenv("DB_NAME", "Galaxy_mina")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "password")
-
-    url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
-
-    log.info("Conectando a Postgres: %s@%s:%s/%s", user, host, port, name)
-
-    return create_engine(
-        url,
-        pool_pre_ping=True,   # verifica la conexión antes de usarla
-        echo=False,           # True para ver todo el SQL (útil al depurar)
-        future=True,
-    )
+    names = ("DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD")
+    missing = [n for n in names if not os.environ.get(n, "").strip()]
+    if missing:
+        raise ValueError("Configurar variables PostgreSQL: " + ", ".join(missing))
+    try:
+        port = int(os.environ["DB_PORT"])
+        if not 1 <= port <= 65535:
+            raise ValueError()
+    except ValueError as exc:
+        raise ValueError("DB_PORT debe ser un puerto válido") from exc
+    url = URL.create("postgresql+psycopg2", username=os.environ["DB_USER"],
+                     password=os.environ["DB_PASSWORD"], host=os.environ["DB_HOST"],
+                     port=port, database=os.environ["DB_NAME"])
+    return create_engine(url, pool_pre_ping=True, hide_parameters=True,
+                         connect_args={"connect_timeout": 10,
+                                       "options": "-c statement_timeout=60000 -c lock_timeout=30000"})

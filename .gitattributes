@@ -1,0 +1,3 @@
+* text=auto eol=lf
+sql/baseline/*.sql -text
+tests/fixtures/*.xlsx -text

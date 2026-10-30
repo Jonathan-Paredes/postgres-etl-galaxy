@@ -23,3 +23,7 @@ data/
 *.backup
 !sql/*.sql
 !examples/*.csv
+!sql/baseline/*.sql
+!tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx
+.pytest_cache/
+test-results/
