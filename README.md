@@ -95,6 +95,7 @@ para ejecutarla. [Resultados realmente ejecutados](docs/ITERACION_2_RESULTADOS.m
 
 ## Documentación
 
+- [Agente operacional de las 21:00 — Iteración 4](docs/ITERACION_4_AGENTE_OPERACIONAL.md)
 - [Contrato de entrada y modelo](docs/CONTRATO_FISICO.md)
 - [Cambios, decisiones y limitaciones](docs/ENDURECIMIENTO.md)
 - [Fixture original preservado](docs/FIXTURE.md)

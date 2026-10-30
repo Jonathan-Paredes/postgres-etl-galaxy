@@ -23,8 +23,13 @@ class Incumplimiento:
     lote_id: str
 
 
+def es_wip(estado: str) -> bool:
+    """Predicado compartido; no modifica el valor recibido ni el contrato."""
+    return normalizar_estado(estado) == 'WORK_IN_PROGRESS'
+
+
 def evaluar_corte(tickets, fecha_corte: datetime, lote_id: str):
     corte = ConfiguracionCorte().validar(fecha_corte)
     return [Incumplimiento(str(t['Numero_ticket']), 'WIP_EN_CORTE_0530', corte,
                           str(t['Estado']), lote_id)
-            for t in tickets if normalizar_estado(str(t['Estado'])) == 'WORK_IN_PROGRESS']
+            for t in tickets if es_wip(str(t['Estado']))]

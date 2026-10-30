@@ -1,0 +1,40 @@
+{
+  "ejecucion": {
+    "ejecucion_id": "a123c96b-1586-484d-b036-715c49d67973",
+    "fuente": "mesa-sintetica",
+    "corte": "2025-03-07T00:00:00+00:00",
+    "inicio": "2026-10-30T02:48:22.604979+00:00",
+    "fin": "2026-10-30T02:48:24.853207+00:00",
+    "estado": "COMPLETADO",
+    "tickets_leidos": 20,
+    "conteos_json": "{\"fuente\": \"mesa-sintetica\", \"corte\": \"2025-03-07T00:00:00+00:00\", \"corte_santiago\": \"2025-03-06T21:00:00-03:00\", \"hash_instantanea\": \"e3a30e8c880a387dd8ea9f98128c7e2745e9d2bdb359112965769f69661db6df\", \"leidos\": 20, \"activos\": 18, \"por_componente\": [{\"componente\": \"Aplicaciones\", \"Incident\": 0, \"Service Request\": 2}, {\"componente\": \"CCTV\", \"Incident\": 3, \"Service Request\": 0}, {\"componente\": \"Enlaces\", \"Incident\": 4, \"Service Request\": 0}, {\"componente\": \"Radios TETRA\", \"Incident\": 3, \"Service Request\": 0}, {\"componente\": \"Redes\", \"Incident\": 4, \"Service Request\": 1}, {\"componente\": \"Telefonía\", \"Incident\": 0, \"Service Request\": 1}], \"por_estado\": [{\"estado\": \"Pendiente\", \"Incident\": 11, \"Service Request\": 2}, {\"estado\": \"Abierto\", \"Incident\": 2, \"Service Request\": 1}, {\"estado\": \"Work in Progress\", \"Incident\": 1, \"Service Request\": 1}], \"conteos_por_tipo_estado\": [{\"tipo\": \"Incident\", \"estado\": \"Abierto\", \"cantidad\": 2}, {\"tipo\": \"Incident\", \"estado\": \"Cancelado\", \"cantidad\": 0}, {\"tipo\": \"Incident\", \"estado\": \"Cerrado\", \"cantidad\": 1}, {\"tipo\": \"Incident\", \"estado\": \"Pendiente\", \"cantidad\": 11}, {\"tipo\": \"Incident\", \"estado\": \"Work in Progress\", \"cantidad\": 1}, {\"tipo\": \"Service Request\", \"estado\": \"Abierto\", \"cantidad\": 1}, {\"tipo\": \"Service Request\", \"estado\": \"Cancelado\", \"cantidad\": 1}, {\"tipo\": \"Service Request\", \"estado\": \"Cerrado\", \"cantidad\": 0}, {\"tipo\": \"Service Request\", \"estado\": \"Pendiente\", \"cantidad\": 2}, {\"tipo\": \"Service Request\", \"estado\": \"Work in Progress\", \"cantidad\": 1}], \"tickets_wip\": [{\"numero_ticket\": \"I-014\", \"estado_observado\": \"Work in Progress\"}, {\"numero_ticket\": \"SR-004\", \"estado_observado\": \"Work in Progress\"}]}",
+    "tickets_wip_json": "[{\"numero_ticket\": \"I-014\", \"estado_observado\": \"Work in Progress\"}, {\"numero_ticket\": \"SR-004\", \"estado_observado\": \"Work in Progress\"}]",
+    "hash_instantanea": "e3a30e8c880a387dd8ea9f98128c7e2745e9d2bdb359112965769f69661db6df",
+    "resultado_grafico": "OK",
+    "resultado_mensaje": "OK",
+    "directorio": "artefactos-del-ejemplo",
+    "error_codigo": null
+  },
+  "alertas": [
+    {
+      "alerta_id": "3cb21294-0a11-5b62-b812-6f89feca6223",
+      "fuente": "mesa-sintetica",
+      "numero_ticket": "I-014",
+      "codigo_regla": "WIP_EN_RESUMEN_2100",
+      "fecha_corte": "2025-03-07T00:00:00+00:00",
+      "estado_observado": "Work in Progress",
+      "fecha_observacion": "2026-10-30T02:48:22.947619+00:00",
+      "primera_ejecucion": "a123c96b-1586-484d-b036-715c49d67973"
+    },
+    {
+      "alerta_id": "73e3ad7c-ed6c-520a-9605-f617e51f0df3",
+      "fuente": "mesa-sintetica",
+      "numero_ticket": "SR-004",
+      "codigo_regla": "WIP_EN_RESUMEN_2100",
+      "fecha_corte": "2025-03-07T00:00:00+00:00",
+      "estado_observado": "Work in Progress",
+      "fecha_observacion": "2026-10-30T02:48:22.947619+00:00",
+      "primera_ejecucion": "a123c96b-1586-484d-b036-715c49d67973"
+    }
+  ]
+}

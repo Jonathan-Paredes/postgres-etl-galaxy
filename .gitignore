@@ -27,3 +27,7 @@ data/
 !tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx
 .pytest_cache/
 test-results/
+reportes_operacionales/
+*.sqlite3
+*.sqlite3-journal
+!tests/fixtures/operacional.sql

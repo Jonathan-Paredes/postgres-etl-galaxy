@@ -1,0 +1,22 @@
+{
+  ".gitignore": "07349c25590fa7a5fee5ee6b1a454186dfd610e71f03d182bb9450d6c1241dc9",
+  "README.md": "77d59f48c5cbfc507478934594a77057ada5745c8469edbcb95283a87d9be054",
+  "docs/ITERACION_4_AGENTE_OPERACIONAL.md": "399a62f45e7262ab9bd88701b7a74280f879cfe88b3d67c3b19520f6fb981adb",
+  "docs/ITERACION_4_COMPONENTES_REUTILIZABLES.md": "a899c4b4f1f257bc211559a9e23a097e84ac6a70c0f0e9ae3e471ba3e1715813",
+  "docs/ITERACION_4_JUNIT.xml": "348793f413facad228e295d975908ef918e75d1588459024e6fea2af3c452390",
+  "docs/ITERACION_4_RESULTADOS.md": "f5f6e63c0584d400c4bb8c0d4836631a4a89f8dce14ad20d4d3ef3cd95424dd1",
+  "examples/iteracion4/auditoria.json": "e7aa7c066baecf6067524de05385bae0c758ad663f8f2bc52947c747fada1a11",
+  "examples/iteracion4/datos_reporte.json": "2f6aba255600273644eb2346e496ace3682e5da2aa113cd515d5e118d67d6a88",
+  "examples/iteracion4/mensaje.txt": "c109a883cc8629ca624ca311f1c0817d59741b97c27de22c9dc98346a27b05e4",
+  "examples/iteracion4/reporte.png": "8fac5521bf552682ecffa2cac4e03fda87aa10e2a16d3df5d7d0a84d65a4b140",
+  "requirements-runtime.txt": "30e7a0d68264bafc7b3acfc1c4854ec6e931ca5bef8e52bf2ef0b819349ace5f",
+  "scr/agente_reportabilidad.py": "d6b80cab144b600f1e37187747ae95e56c364079102dfeb629377cf82031bf36",
+  "scr/alertas_operacionales.py": "e886d3fbf3cccb3d056468abc094ee6ecbc8991746ec0f89195b08f811e9b6b0",
+  "scr/auditoria_reportes.py": "518e4a9b6e31aea1a88fad7917650f981b780e1b1e952ba5b007a9b81e4496a5",
+  "scr/fuente_operacional.py": "5eca71c7e59f2fec8d908ca3e2937ced7ec2f00f0b947dfc493b1eca026f5e9b",
+  "scr/reporte_operacional.py": "faddf16865b446c6c8f180a6273441211ac9f656181a2313b579eeec06baaa17",
+  "tests/fixtures/operacional.sql": "20b3f07c27bc9327d76db5b165e83fea2c84b004372a7c72eefc04e56dbfbd26",
+  "tests/test_reportabilidad_postgres.py": "18d75b7ad5ff8a6f0c1be1a74df749df99972ddc5059cddb6adafdcba1f93f63",
+  "tests/test_reportabilidad_unit.py": "60a9e96a3e352b3fba6637a8f78ad6951ea5f1b2014fffe848f9e5bf5b32cf6d",
+  "tests/fixtures/galaxy_tickets_abiertos_pruebas.xlsx": "aa2da025cef3321cae8036cc94e44522a067d1f74c48e457ef74cce88528093a"
+}
